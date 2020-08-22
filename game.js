@@ -2,7 +2,8 @@ var points = 0;
 
 var fps = 60;
 var BatGenerationSpeed = 100;
-var BatSpeed = 2;
+var BatSpeed = 100;
+var BatDirectionSpeed = 5;
 
 var canvas = document.getElementById("canvas");
 var context = canvas.getContext("2d");
@@ -67,8 +68,8 @@ const moveBats = () => {
     var thisbat = Bat.objects[i];
 
     //move the bat
-    thisbat.x = thisbat.x + Math.cos(thisbat.direction) * BatSpeed;
-    thisbat.y = thisbat.y + Math.sin(thisbat.direction) * BatSpeed;
+    thisbat.x = thisbat.x + (Math.cos(thisbat.direction) * BatSpeed) / fps;
+    thisbat.y = thisbat.y + (Math.sin(thisbat.direction) * BatSpeed) / fps;
 
     //delete bats of the board
     if (
@@ -82,7 +83,8 @@ const moveBats = () => {
 
     //change direction
     thisbat.direction =
-      thisbat.direction + Math.cos(Math.random() * Math.PI) / 10;
+      thisbat.direction +
+      (Math.cos(Math.random() * Math.PI) / fps) * BatDirectionSpeed;
   }
 };
 
