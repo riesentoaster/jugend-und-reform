@@ -23,6 +23,7 @@ function Bat(x, y, width, height, direction) {
   this.width = width;
   this.direction = direction;
   this.animationstate = 0;
+  this.type = "Bat";
   Bat.objects.push(this);
 }
 Bat.objects = [];
@@ -39,11 +40,10 @@ Bat.prototype.remove = function () {
   );
 };
 
-function Window(x, y, width, height) {
+function Window(x, y) {
   this.x = x;
   this.y = y;
-  this.width = width;
-  this.height = height;
+  this.type = "Window";
   Window.objects.push(this);
 }
 Window.objects = [];
@@ -96,14 +96,12 @@ const generateBats = () => {
 };
 
 const moveBats = () => {
-  for (var i = 0; i < Bat.objects.length; i++) {
-    var thisbat = Bat.objects[i];
-
+  Bat.objects.forEach((thisbat) => {
     //move the bat
     thisbat.x = thisbat.x + (Math.cos(thisbat.direction) * BatSpeed) / fps;
     thisbat.y = thisbat.y + (Math.sin(thisbat.direction) * BatSpeed) / fps;
 
-    //delete bats of the board
+    //delete bats off the board
     if (
       thisbat.x > gameMaxX ||
       thisbat.x < -Bat.width + gameMinX ||
@@ -117,41 +115,38 @@ const moveBats = () => {
     thisbat.direction =
       thisbat.direction +
       (Math.cos(Math.random() * Math.PI) / fps) * BatDirectionSpeed;
-  }
+  });
 };
 
 const updateWindows = () => {
   if (Window.objects.length < Window.count) {
     for (var i = 0; i < Window.count; i++) {
-      var noOverlap = false;
       var tries = 0;
-      while (!noOverlap && tries < 1000) {
-        noOverlap = true;
+      var x = Math.random() * (gameWidth - Window.width) + gameMinX;
+      while (
+        //checking for colisions/too close to existing windows
+        Window.objects.some(
+          (thiswindow) =>
+            x > thiswindow.x - Window.width - Window.horizontalSpacing &&
+            x < thiswindow.x + Window.width + Window.horizontalSpacing
+        ) &&
+        tries < 1000
+      ) {
         var x = Math.random() * (gameWidth - Window.width) + gameMinX;
-        for (var j = 0; j < Window.objects.length; j++) {
-          if (
-            x > Window.objects[j].x - Window.width - Window.horizontalSpacing &&
-            x < Window.objects[j].x + Window.width + Window.horizontalSpacing
-          ) {
-            noOverlap = false;
-          }
-        }
         tries++;
       }
+      
       if (tries >= 1000) {
         Window.count = Window.objects.length;
-        break;
       } else {
         var window = new Window(
           x,
           gameMaxY - (100 + Window.height),
-          Window.width,
-          Window.height
         );
       }
     }
   }
-  Window.objects.map(
+  Window.objects.forEach(
     (thiswindow) => (thiswindow.y = gameMaxY - (100 + Window.height))
   );
 };
@@ -164,33 +159,32 @@ canvas.addEventListener("mousedown", (event) => {
 });
 
 const shoot = (x, y) => {
-  var shotsomething = false;
-  for (var i = 0; i < Bat.objects.length; i++) {
-    thisbat = Bat.objects[i];
-    if (
-      x > thisbat.x &&
-      x <= thisbat.x + thisbat.width &&
-      y > thisbat.y &&
-      y < thisbat.y + thisbat.height
-    ) {
-      points += Bat.points;
-      thisbat.remove();
-      shotsomething = true;
-      break;
-    }
-  }
-  if (!shotsomething) {
-    for (var i = 0; i < Window.objects.length; i++) {
-      if (
-        x > Window.objects[i].x &&
-        x <= Window.objects[i].x + Window.objects[i].width &&
-        y > Window.objects[i].y &&
-        y < Window.objects[i].y + Window.objects[i].height
-      ) {
-        points += Window.points;
-        shotsomething = true;
+  shotobject =
+    Bat.objects.find(
+      (thisbat) =>
+        x > thisbat.x &&
+        x <= thisbat.x + thisbat.width &&
+        y > thisbat.y &&
+        y < thisbat.y + thisbat.height
+    ) ||
+    Window.objects.find(
+      (thiswindow) =>
+        x > thiswindow.x &&
+        x <= thiswindow.x + thiswindow.width &&
+        y > thiswindow.y &&
+        y < thiswindow.y + thiswindow.height
+    );
+  if (shotobject) {
+    switch (shotobject.type) {
+      case "Bat":
+        shotobject.remove();
+        points += Bat.points;
         break;
-      }
+      case "Window":
+        points += Window.points;
+        break;
+      case undefined:
+        break;
     }
   }
 };
@@ -209,7 +203,7 @@ var redraw = () => {
 
   //draw windows
   context.fillStyle = Window.color;
-  Window.objects.map((thiswindow) =>
+  Window.objects.forEach((thiswindow) =>
     context.drawImage(
       Window.image,
       thiswindow.x,
@@ -220,7 +214,7 @@ var redraw = () => {
   );
   //draw bats
   context.fillStyle = Bat.color;
-  Bat.objects.map((thisbat) => {
+  Bat.objects.forEach((thisbat) => {
     //context.fillRect(thisbat.x, thisbat.y, thisbat.width, thisbat.height)
     var currentanimationx;
     switch (
