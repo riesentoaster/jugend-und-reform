@@ -4,6 +4,7 @@ var fps = 60;
 var BatGenerationSpeed = 100;
 var BatSpeed = 100;
 var BatDirectionSpeed = 5;
+var BatAnimationSpeed = 1;
 
 var canvas = document.getElementById("canvas");
 var context = canvas.getContext("2d");
@@ -33,13 +34,16 @@ function Bat(x, y, width, height, direction) {
   this.height = height;
   this.width = width;
   this.direction = direction;
+  this.animationstate = 0;
   Bat.objects.push(this);
 }
 Bat.objects = [];
-Bat.width = 50;
-Bat.height = 50;
+Bat.width = 80;
+Bat.height = 80;
 Bat.color = "blue";
 Bat.points = 100;
+Bat.image = new Image();
+Bat.image.src = "bat.png";
 
 Bat.prototype.remove = function () {
   Bat.objects.splice(
@@ -194,9 +198,36 @@ var redraw = () => {
   );
   //draw bats
   context.fillStyle = Bat.color;
-  Bat.objects.map((thisbat) =>
-    context.fillRect(thisbat.x, thisbat.y, thisbat.width, thisbat.height)
-  );
+  Bat.objects.map((thisbat) => {
+    //context.fillRect(thisbat.x, thisbat.y, thisbat.width, thisbat.height)
+    var currentanimationx;
+    switch (Math.floor(((thisbat.animationstate % fps) / fps) * 4 * BatAnimationSpeed)) {
+      case 0:
+        currentanimationx = 32;
+        break;
+      case 1:
+        currentanimationx = 64;
+        break;
+      case 2:
+        currentanimationx = 96;
+        break;
+      case 3:
+        currentanimationx = 64;
+        break;
+    }
+    context.drawImage(
+      Bat.image,
+      currentanimationx,
+      0,
+      32,
+      32,
+      thisbat.x,
+      thisbat.y,
+      thisbat.width,
+      thisbat.height
+    );
+    thisbat.animationstate++;
+  });
 
   //draw header
   context.fillStyle = "black";
