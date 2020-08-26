@@ -9,6 +9,7 @@ var BatAnimationSpeed = 1;
 var ScopeRadius = 20;
 
 var canvas = document.getElementById("canvas");
+(canvas.width = 200), (canvas.height = 100);
 var context = canvas.getContext("2d");
 
 var gameMinX;
@@ -20,6 +21,11 @@ var gameHeight = 100;
 
 var mouseX;
 var mouseY;
+
+var Bench = new Image();
+Bench.src = "bench.png";
+var benchHeight;
+var benchWidth;
 
 function Bat(x, y, width, height, direction) {
   this.x = x;
@@ -115,6 +121,9 @@ const updateBrowserWindow = () => {
     Window.paddingBottom * gameHeight -
     Window.paddingTop * gameHeight;
   Window.width = Math.floor(Window.height / 2);
+
+  benchHeight = Math.floor(0.2 * gameHeight);
+  benchWidth = Math.floor(1 * benchHeight);
 
   if (browserWindowHasChanged) {
     Window.objects = [];
@@ -214,10 +223,21 @@ var redraw = () => {
       Window.height
     )
   );
+
+  //draw benches
+  for (var i = 0; i < gameWidth / benchWidth / 0.7; i++) {
+    context.drawImage(
+      Bench,
+      i * benchWidth * 0.7,
+      gameMaxY - benchHeight,
+      benchWidth,
+      benchHeight
+    );
+  }
+
   //draw bats
   context.fillStyle = Bat.color;
   Bat.objects.forEach((thisbat) => {
-    //context.fillRect(thisbat.x, thisbat.y, thisbat.width, thisbat.height)
     var currentanimationx;
     switch (
       Math.floor(((thisbat.animationstate % fps) / fps) * 4 * BatAnimationSpeed)
