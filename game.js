@@ -6,15 +6,20 @@ var BatSpeed = 100;
 var BatDirectionSpeed = 5;
 var BatAnimationSpeed = 1;
 
+var ScopeRadius = 20;
+
 var canvas = document.getElementById("canvas");
 var context = canvas.getContext("2d");
 
 var gameMinX;
 var gameMaxX;
-var gameWidth;
+var gameWidth = 150;
 var gameMinY;
 var gameMaxY;
-var gameHeight;
+var gameHeight = 100;
+
+var mouseX;
+var mouseY;
 
 function Bat(x, y, width, height, direction) {
   this.x = x;
@@ -48,12 +53,45 @@ function Window(x, y) {
 }
 Window.objects = [];
 Window.count = 1000;
-Window.width = 96;
+Window.width;
 Window.horizontalSpacing = 50;
+Window.paddingTop = 0.2; //*gameHeight
+Window.paddingBottom = 0.25; //*gameHeight
+Window.width;
 Window.height;
 Window.points = -500;
 Window.image = new Image();
 Window.image.src = "window.png";
+
+const createWindows = () => {
+  if (Window.objects.length < Window.count) {
+    for (var i = 0; i < Window.count; i++) {
+      var tries = 0;
+      var x = Math.random() * (gameWidth - Window.width) + gameMinX;
+      while (
+        //checking for colisions/too close to existing windows
+        Window.objects.some(
+          (thiswindow) =>
+            x > thiswindow.x - Window.width - Window.horizontalSpacing &&
+            x < thiswindow.x + Window.width + Window.horizontalSpacing
+        ) &&
+        tries < 1000
+      ) {
+        var x = Math.random() * (gameWidth - Window.width) + gameMinX;
+        tries++;
+      }
+
+      if (tries >= 1000) {
+        Window.count = Window.objects.length;
+      } else {
+        var window = new Window(
+          x,
+          gameMaxY - (Window.paddingBottom * gameHeight + Window.height)
+        );
+      }
+    }
+  }
+};
 
 const updateBrowserWindow = () => {
   var browserWindowHasChanged = false;
@@ -72,10 +110,16 @@ const updateBrowserWindow = () => {
   gameMaxY = canvas.height;
   gameHeight = gameMaxY - gameMinY;
 
-  Window.height = Math.max(64, gameHeight - 200);
+  Window.height =
+    gameHeight -
+    Window.paddingBottom * gameHeight -
+    Window.paddingTop * gameHeight;
+  Window.width = Math.floor(Window.height / 2);
+
   if (browserWindowHasChanged) {
     Window.objects = [];
     Window.count = 1000;
+    createWindows();
   }
 };
 updateBrowserWindow();
@@ -118,62 +162,23 @@ const moveBats = () => {
   });
 };
 
-const updateWindows = () => {
-  if (Window.objects.length < Window.count) {
-    for (var i = 0; i < Window.count; i++) {
-      var tries = 0;
-      var x = Math.random() * (gameWidth - Window.width) + gameMinX;
-      while (
-        //checking for colisions/too close to existing windows
-        Window.objects.some(
-          (thiswindow) =>
-            x > thiswindow.x - Window.width - Window.horizontalSpacing &&
-            x < thiswindow.x + Window.width + Window.horizontalSpacing
-        ) &&
-        tries < 1000
-      ) {
-        var x = Math.random() * (gameWidth - Window.width) + gameMinX;
-        tries++;
-      }
-      
-      if (tries >= 1000) {
-        Window.count = Window.objects.length;
-      } else {
-        var window = new Window(
-          x,
-          gameMaxY - (100 + Window.height),
-        );
-      }
-    }
-  }
-  Window.objects.forEach(
-    (thiswindow) => (thiswindow.y = gameMaxY - (100 + Window.height))
-  );
-};
-
-canvas.addEventListener("mousedown", (event) => {
-  const rect = canvas.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-  shoot(x, y);
-});
-
 const shoot = (x, y) => {
   shotobject =
     Bat.objects.find(
       (thisbat) =>
-        x > thisbat.x &&
-        x <= thisbat.x + thisbat.width &&
-        y > thisbat.y &&
+        x >= thisbat.x &&
+        x < thisbat.x + thisbat.width &&
+        y >= thisbat.y &&
         y < thisbat.y + thisbat.height
     ) ||
     Window.objects.find(
       (thiswindow) =>
-        x > thiswindow.x &&
-        x <= thiswindow.x + thiswindow.width &&
-        y > thiswindow.y &&
-        y < thiswindow.y + thiswindow.height
+        x >= thiswindow.x &&
+        x < thiswindow.x + Window.width &&
+        y >= thiswindow.y &&
+        y < thiswindow.y + Window.height
     );
+
   if (shotobject) {
     switch (shotobject.type) {
       case "Bat":
@@ -183,15 +188,12 @@ const shoot = (x, y) => {
       case "Window":
         points += Window.points;
         break;
-      case undefined:
-        break;
     }
   }
 };
 
 const update = () => {
   updateBrowserWindow();
-  updateWindows();
   moveBats();
   generateBats();
   redraw();
@@ -260,6 +262,30 @@ var redraw = () => {
 
   context.textAlign = "right";
   context.fillText("Punkte: " + points, canvas.width, 0);
+
+  //draw scope
+  context.strokeStyle = "black";
+  context.lineWidth = 4;
+  context.beginPath();
+  context.arc(mouseX, mouseY, ScopeRadius, 0, 2 * Math.PI);
+  context.moveTo(mouseX - 20, mouseY);
+  context.lineTo(mouseX + 20, mouseY);
+  context.moveTo(mouseX, mouseY - 20);
+  context.lineTo(mouseX, mouseY + 20);
+  context.stroke();
 };
+
+canvas.addEventListener("mousedown", (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  shoot(x, y);
+});
+
+canvas.addEventListener("mousemove", (event) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = event.clientX - rect.left;
+  mouseY = event.clientY - rect.top;
+});
 
 setInterval(update, 1000 / fps);
