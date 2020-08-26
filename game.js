@@ -16,18 +16,6 @@ var gameMinY;
 var gameMaxY;
 var gameHeight;
 
-const updateBrowserWindow = () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  gameMinX = 0;
-  gameMaxX = canvas.width;
-  gameWidth = gameMaxX - gameMinX;
-  gameMinY = 100;
-  gameMaxY = canvas.height;
-  gameHeight = gameMaxY - gameMinY;
-};
-updateBrowserWindow();
-
 function Bat(x, y, width, height, direction) {
   this.x = x;
   this.y = y;
@@ -38,9 +26,8 @@ function Bat(x, y, width, height, direction) {
   Bat.objects.push(this);
 }
 Bat.objects = [];
-Bat.width = 80;
-Bat.height = 80;
-Bat.color = "blue";
+Bat.width = 64;
+Bat.height = 64;
 Bat.points = 100;
 Bat.image = new Image();
 Bat.image.src = "bat.png";
@@ -51,6 +38,47 @@ Bat.prototype.remove = function () {
     1
   );
 };
+
+function Window(x, y, width, height) {
+  this.x = x;
+  this.y = y;
+  this.width = width;
+  this.height = height;
+  Window.objects.push(this);
+}
+Window.objects = [];
+Window.count = 1000;
+Window.width = 96;
+Window.horizontalSpacing = 50;
+Window.height;
+Window.points = -500;
+Window.image = new Image();
+Window.image.src = "window.png";
+
+const updateBrowserWindow = () => {
+  var browserWindowHasChanged = false;
+  if (
+    canvas.width != window.innerWidth ||
+    canvas.height != window.innerHeight
+  ) {
+    browserWindowHasChanged = true;
+  }
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  gameMinX = 0;
+  gameMaxX = canvas.width;
+  gameWidth = gameMaxX - gameMinX;
+  gameMinY = 100;
+  gameMaxY = canvas.height;
+  gameHeight = gameMaxY - gameMinY;
+
+  Window.height = Math.max(64, gameHeight - 200);
+  if (browserWindowHasChanged) {
+    Window.objects = [];
+    Window.count = 1000;
+  }
+};
+updateBrowserWindow();
 
 const generateBats = () => {
   if (
@@ -92,41 +120,35 @@ const moveBats = () => {
   }
 };
 
-function Window(x, y, width, height) {
-  this.x = x;
-  this.y = y;
-  this.width = width;
-  this.height = height;
-  Window.objects.push(this);
-}
-Window.objects = [];
-Window.width = 100;
-Window.height = 200;
-Window.color = "pink";
-Window.points = -500;
-
 const updateWindows = () => {
-  if (Window.objects.length < 4) {
-    for (var i = 0; i < 4; i++) {
+  if (Window.objects.length < Window.count) {
+    for (var i = 0; i < Window.count; i++) {
       var noOverlap = false;
-      while (!noOverlap) {
+      var tries = 0;
+      while (!noOverlap && tries < 1000) {
         noOverlap = true;
         var x = Math.random() * (gameWidth - Window.width) + gameMinX;
         for (var j = 0; j < Window.objects.length; j++) {
           if (
-            x > Window.objects[j].x - Window.width - 50 &&
-            x < Window.objects[j].x + Window.width + 50
+            x > Window.objects[j].x - Window.width - Window.horizontalSpacing &&
+            x < Window.objects[j].x + Window.width + Window.horizontalSpacing
           ) {
             noOverlap = false;
           }
         }
+        tries++;
       }
-      var window = new Window(
-        x,
-        gameMaxY - (100 + Window.height),
-        Window.width,
-        Window.height
-      );
+      if (tries >= 1000) {
+        Window.count = Window.objects.length;
+        break;
+      } else {
+        var window = new Window(
+          x,
+          gameMaxY - (100 + Window.height),
+          Window.width,
+          Window.height
+        );
+      }
     }
   }
   Window.objects.map(
@@ -174,7 +196,6 @@ const shoot = (x, y) => {
 };
 
 const update = () => {
-  console.log(JSON.stringify(Window.objects));
   updateBrowserWindow();
   updateWindows();
   moveBats();
@@ -189,11 +210,12 @@ var redraw = () => {
   //draw windows
   context.fillStyle = Window.color;
   Window.objects.map((thiswindow) =>
-    context.fillRect(
+    context.drawImage(
+      Window.image,
       thiswindow.x,
       thiswindow.y,
-      thiswindow.width,
-      thiswindow.height
+      Window.width,
+      Window.height
     )
   );
   //draw bats
@@ -201,7 +223,9 @@ var redraw = () => {
   Bat.objects.map((thisbat) => {
     //context.fillRect(thisbat.x, thisbat.y, thisbat.width, thisbat.height)
     var currentanimationx;
-    switch (Math.floor(((thisbat.animationstate % fps) / fps) * 4 * BatAnimationSpeed)) {
+    switch (
+      Math.floor(((thisbat.animationstate % fps) / fps) * 4 * BatAnimationSpeed)
+    ) {
       case 0:
         currentanimationx = 32;
         break;
